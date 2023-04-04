@@ -1,0 +1,1390 @@
+---
+title: "Capstone project"
+author: "Apurva Shetty"
+date: '2023-02-13'
+output: 
+  html_document:
+    css: report_styles.css
+    theme: readable
+    fig_width: 15
+    fig_height: 10
+    highlight: breezedark
+    number_sections: yes
+    toc: yes
+  editor_options:
+    chunk_output_type: console
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+```{r, include=FALSE}
+
+local({
+  hook_output <- knitr::knit_hooks$get('output')
+  knitr::knit_hooks$set(output = function(x, options) {
+    if (!is.null(options$max.height)) options$attr.output <- c(
+      options$attr.output,
+      sprintf('style="max-height: %s;"', options$max.height)
+    )
+    hook_output(x, options)
+  })
+})
+```
+
+```{css}
+
+pre, code {white-space:pre !important; overflow-x:scroll !important}
+
+```
+
+
+```{r, echo = F}
+library(knitr)
+library(formatR)
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
+```
+# EDA
+
+
+## Statement of the business problem of the project
+
+Swire must balance potential profitability of the new restaurant when determining price and funding. A low price may help win the business, but it may not be profitable. On the other hand offering discounts to successful restaurants can create a loyal customers but discounts to failing business can lead to loss. 
+
+The main objective of this project is to improve the ability to predict success/profitability/sales by predicting the popularity, longevity, and total 3-year sales volume of new Swire customers based on historical data. Loyal customers are valuable indicator of business’s success as they likely to continue supporting the business, which is important for long-term business success. 
+
+We can address this issue using predictive analysis approach. 
+
+1.	Use a supervised machine learning approach with a classification model. We can predict the success of the business by making target variable as a categorical variable(profit, loss) . The model will make use of the predictors like customer attributes(location, customer type), sales data, census data, and customer reviews data to predict the target variable. The model is trained using logistic regression to predict the target variables. The model would be able to provide insight of customers which help the company to decide whether customers are loyal or not. Based on this it is possible to make decision about offering discounts and funding to the new restaurants. 
+2.	We can apply same model with target variables as sales volume with predictors as we used above. The model is trained by setting a threshold for sales, longevity to measure the potential success.
+
+By analyzing customer behavior the business will gain insights into customer preferences which improve customer experience and leads to higher satisfaction and further loyalty, ultimately leading to increased profit and success. 
+
+The success of this project is determined by the increase profit when compared to the previous years. Customer reviews and feedbacks are the measure of increased customer satisfactions.
+The project will deliver a model which predicts the success/failure of the new local restaurants based on customer attributes, sales data, and customer reviews. Analyzing why customers are losing interest is not included in the scope of the project for now and could be added in the future as  an ongoing effort to improve customer experience.
+
+We are going to execute the project by April 1st 2023 and will use feedback to give the best deliverables. The important milestone of the project is an evaluation of the project’s performance, including an assessment of customer satisfaction, sales and revenue, and overall success. We will finish the project by April 11, 2023.
+
+**In Summary: **
+The business problem for this project is to improve Swire Coca-Cola's ability to predict the success, profitability, and sales volume of new customers, specifically local restaurants, in order to make informed decisions about pricing and funding. The challenge lies in balancing the potential profitability of the new restaurants with the need to offer competitive prices and discounts, as low prices may not be profitable and discounts to failing businesses can lead to losses. The goal of the project is to develop a predictive model that can accurately estimate success/profitability/sales by predicting popularity, longevity, and total 3-year sales volume of new customers, enabling Swire Coca-Cola to make data-driven decisions about pricing and funding.
+
+
+## Statement of Analytic objective
+
+The analytic objective of this project is to develop a predictive model that can accurately estimate the popularity, longevity, and total 3-year sales volume of new customers based on historical data. The outcome variable would be the success, profitability, and sales volume of the new restaurants, which will be predicted based on various factors like  location, Beverage category, Calorie category, discount, NSI, loyalty ETC. The goal is to make informed decisions about pricing and funding for new restaurants, which will essentially lead to increased profitability and long-term business success of Swire Coca-Cola.
+
+To achieve the objective of the project, data analytics and statistics techniques can be used to analyze sales and customers data and identify patterns that are indicative of success/loyalty of customers. By looking into the data we can identify the relationships between different variables like location, country, Market,beverage category, discount, NSI, etc to determine which factors have greatest impact on success. This could include regression Analysis/decision trees. Then from the result of these analysis we can develop a predictive model that estimates the popularity, longevity, and total 3-year sales volume of new customers. This model can be used by Swire Coca-Cola to make informed decisions about pricing and funding for new restaurants.
+
+##  Questions  to guide exploration
+
+1. What factors/variables play an important role in predicting the success of restaurant?
+
+2. What data is currently available now and is any additional data required?
+
+3. Is available data good for analysis? Do we need to preprocess?
+
+4. How to determine the relationship between variables and their impact on revenue/success of restaurants?
+
+5. What are the marketing strategies and its impact on success of restaurants?
+
+6. Does location/geographical factors influence the success/failure of restaurants?
+
+7. Is there any past successful/failure restaurant data available for analysis? If not how can we determine that?
+
+8. Does loyal customers play an important role in determining the success of restaurants/increased revenue?
+
+9. What is the role of beverage offerings in the success of a restaurant?Which beverages bring more profit?
+
+10. Is there any seasonal data available that can affect the success of restaurants?
+
+11. How can we build a predictive model?how to measure the accuracy of the model?
+
+12. How to make informed decision from the results available from the analysis?
+
+13. Is there any relationship between Gross Profit, Discount, Beverage Category and Calorie Content?
+
+14. Is the profit generated from regular calorie beverages higher than that of low calorie ones?
+
+
+## Data Loading and pre-processing
+
+```{r set, warning=FALSE}
+#Loading all the libraries
+library(rmarkdown)
+library(psych)
+library(scatterplot3d)
+library(caret)
+library(tictoc)
+library(ggplot2)
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(ggridges)
+library(patchwork)
+library(viridis)
+#library(hrbrthemes)
+library(gapminder)
+library(stats)
+theme_set(theme_bw())
+library(car)
+library(mice)
+library(rminer)
+library(matrixStats)
+library(rmarkdown)
+library(psych)
+library(rpart)
+library(RWeka)
+library(glmnet)
+library(caret)
+library(dplyr)
+library(randomForest)
+library(knitr)
+library(rpart.plot)
+library(magrittr)
+#Reading sales data
+sales <- read.csv("FSOP_Sales_Data_v2.0.csv",stringsAsFactors = FALSE
+                  ,na.strings = c("", "Not applicable"))
+str(sales)
+
+#Reading Customer's data
+cust <- read.csv("FSOP_Customer_Data_v2.0.csv",stringsAsFactors = FALSE)
+str(cust)
+
+```
+
+**Is available data good for analysis? Do we need to preprocess?**
+
+Here We am doing some data pre-processing to use the available data for analysis.  
+
+
+```{r Preprocessing}
+
+##Data Pre processing
+## merge sales and customer data
+
+#Full join
+#cs <- merge(sales,cust, by="CUSTOMER_NUMBER_BLINDED",all = TRUE)
+#cs <- sales %>% full_join(cust, by ="CUSTOMER_NUMBER_BLINDED")
+
+#Left join(Sales left join customer)-Contains all the sales data 
+#and common data from customer
+cs_sales <- merge(sales,cust, by="CUSTOMER_NUMBER_BLINDED",all.x = TRUE)
+View(cs_sales)
+#right join(sales right join customer)- Contains all cust data and 
+#common data from sales
+#cs_cust <- merge(sales,cust, by="CUSTOMER_NUMBER_BLINDED",all.y = TRUE)
+
+
+#CONVERTING CHARACTER TO DATE FORMAT
+cs_sales$MIN_POSTING_DATE <- mdy(cs_sales$MIN_POSTING_DATE)
+cs_sales$MAX_POSTING_DATE <- mdy(cs_sales$MAX_POSTING_DATE)
+cs_sales$ON_BOARDING_DATE <- ymd(cs_sales$ON_BOARDING_DATE)
+cust$ON_BOARDING_DATE <- ymd(cust$ON_BOARDING_DATE)
+
+#spliting year and month frm date formats
+cs_sales$MIN_POSTING_MONTH <-month(cs_sales$MIN_POSTING_DATE) 
+cs_sales$MAX_POSTING_MONTH <-month(cs_sales$MAX_POSTING_DATE) 
+cs_sales$ON_BOARDING_MONTH <-month(cs_sales$ON_BOARDING_DATE) 
+cs_sales$MIN_POSTING_YEAR <- year(cs_sales$MIN_POSTING_DATE) 
+cs_sales$MAX_POSTING_YEAR <- year(cs_sales$MAX_POSTING_DATE) 
+cs_sales$ON_BOARDING_YEAR <- year(cs_sales$ON_BOARDING_DATE) 
+cust$ON_BOARDING_MONTH <-month(cust$ON_BOARDING_DATE)
+
+
+##Dealing with NA values
+
+# how many missings per variable?
+colSums(is.na(cs_sales))
+
+# Replacing NA values in mixed Data types
+
+set.seed(123)
+library(imputeMissings)
+
+# median/mode method
+values2 <- compute(cs_sales)
+
+# Impute
+cs_sales<-impute(cs_sales,object=values2) #using median/mode values
+
+
+
+#na.omit(cs_sales$CALORIE_CAT_DESC)
+## Removing Outliers
+
+
+mean_profit = mean(cs_sales$GROSS_PROFIT_DEAD_NET)
+sd_profit = sd(cs_sales$GROSS_PROFIT_DEAD_NET)
+# Calculate the z-score of each data point
+z_scores <- (cs_sales$GROSS_PROFIT_DEAD_NET - mean_profit) / sd_profit
+
+# Define the threshold for the z-score
+z_threshold <- 3
+
+# Identify the outlier indices
+outlier_indices <- which(abs(z_scores) > z_threshold)
+
+cs_sales <- cs_sales[-outlier_indices,]
+
+
+cs_sales1 <- cs_sales
+
+
+```
+
+
+
+
+
+
+## Plots
+
+### Plot1: Gross profit distribution for discounts and calorie categories
+
+**What is the role of beverage offerings in the success of a restaurant?Which beverages bring more profit?**
+
+```{r Plot1}
+
+##plot1
+#Gross profit net defined based on calorie categories
+cs_sales %>%
+    filter(CALORIE_CAT_DESC %in% c("REGULAR CALORIE", "LOW CALORIE")) %>%
+    filter(GROSS_PROFIT_DEAD_NET> 0) %>%
+  ggplot(aes(x = GROSS_PROFIT_DEAD_NET,
+             y = DISCOUNT,
+             color = BEV_CAT_DESC)) + 
+  geom_point()+
+  facet_wrap(~CALORIE_CAT_DESC)+
+  labs(title = "Gross profit distribution for discounts and calorie category",
+       x = "Gross profit dead net",
+       y = "Discount") +
+  theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+
+```
+
+This plot displays the gross profit distribution for different discounts and calorie categories. The data has been filtered to include only regular and low calorie beverages with a positive gross profit. The plot uses points to show the relationship between gross profit and discount for each beverage category.
+
+From this graph we can see that Core sparkling and packaged water products appear to be the most profitable products in Regular and Low calorie categories respectively. From this graph we can also consider that gross profit high when there is a certain amount of discount is provided.
+
+
+### Plot2: Relationship between Gross Profit and Discount by Beverage Category and Calorie Content
+
+**Is there any relationship between Gross Profit, Discount, Beverage Category and Calorie Content?**
+
+```{r summary}
+
+#Grouping beverage category based on Calorie category
+cs_sales %>% 
+select (CALORIE_CAT_DESC,BEV_CAT_DESC)   %>% distinct %>%
+  group_by(CALORIE_CAT_DESC) %>%
+  arrange(CALORIE_CAT_DESC)
+
+```
+
+Low calorie Beverages: CORE SPARKLING, ENERGY DRINKS, PACKAGED WATER (PLAIN & ENRICHED), SPORTS DRINKS,TEA, FRUIT/VEGETABLE STILL DRINKS, ENHANCED WATER BEVERAGES, OTHER NONALCOHOLIC BEVERAGES, JUICES/NECTARS 
+
+Regular calorie Beverages: Coffee, DAIRY/SOY BEVERAGES, CORE SPARKLING, ENERGY DRINKS, PACKAGED WATER (PLAIN & ENRICHED), SPORTS DRINKS,TEA, FRUIT/VEGETABLE STILL DRINKS, ENHANCED WATER BEVERAGES, OTHER NONALCOHOLIC BEVERAGES, JUICES/NECTARS 
+
+From this we can conclude that:  
+1. All beverages available in Regular calorie.
+
+2. All beverages in the dataset, with the exception of coffee and dairy/soy products, are classified as 'low calorie' 
+
+
+```{r plot2}
+
+##plot2
+
+#Relationship between Gross Profit and Discount in each Beverage Category by calorie(Low/Reg)
+cs_sales %>%
+  filter(BEV_CAT_DESC %in% c("CORE SPARKLING", "ENERGY DRINKS", "PACKAGED WATER (PLAIN & ENRICHED)", "SPORTS DRINKS","TEA", "FRUIT/VEGETABLE STILL DRINKS", "ENHANCED WATER BEVERAGES", "OTHER NONALCOHOLIC BEVERAGES", "JUICES/NECTARS" )) %>%
+    filter(GROSS_PROFIT_DEAD_NET> 0) %>%
+  ggplot(aes(x = GROSS_PROFIT_DEAD_NET,
+             y = DISCOUNT,
+             color = CALORIE_CAT_DESC)) + 
+  geom_point()+
+  facet_wrap(~BEV_CAT_DESC)+
+  labs(title = "Profit distribution based on calorie category in each beverage category",
+       x = "Gross profit dead net") +
+  theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+
+```
+
+This graph displays the distribution of gross profit in each beverage category based on calorie content, with orange dots representing low calorie and blue dots representing regular calorie beverages. The analysis revealed that Core Sparkling, Fruit/Vegetable Still Drinks, Juices/Nectars, Other Nonalcoholic Beverages, and Sports Drinks tended to be more profitable in the regular calorie category. In contrast, Packaged Water (Plain & Enriched) and Enhanced Water Beverages showed higher profitability in the low calorie category.
+
+Below graph shows clearly the profit distribution in core sparkling and Enhanced water based on calorie category
+
+```{r plot}
+
+##plot
+# Gross profit net defined based on PACKAGED WATER (PLAIN & ENRICHED) and CORE SPARKLING
+cs_sales %>%
+  filter(BEV_CAT_DESC %in% c("PACKAGED WATER (PLAIN & ENRICHED)", "CORE SPARKLING")) %>%
+    
+  ggplot(aes(x = GROSS_PROFIT_DEAD_NET,
+             y = DISCOUNT,
+             color = CALORIE_CAT_DESC)) + 
+  geom_point()+
+  facet_wrap(~BEV_CAT_DESC)+
+  labs(title = "Profit distribution in core sparkling and Enhanced water based on calorie categories",
+       x = "Gross profit dead net",
+       y = "discount") +
+    theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+```
+
+
+### Plot3: Distribution of Swire's Customer On-Boarding by Month
+
+**Is there any seasonal data available that can affect the success of restaurants?**
+
+```{r plott}
+#Number of customers started business with swire by month
+cs_sales$ON_BOARDING_MONTH<- factor(cs_sales$ON_BOARDING_MONTH) 
+cust$ON_BOARDING_MONTH<- factor(cust$ON_BOARDING_MONTH) 
+
+cs_sales %>% 
+  filter(ON_BOARDING_MONTH %in% c(1,2,3,4,5,6,7,8,9,10,11,12)) %>%
+  group_by(ON_BOARDING_MONTH) %>% 
+  summarize(Number_of_customers_joined = n_distinct(CUSTOMER_NUMBER_BLINDED))
+
+```
+
+
+```{r plot3}
+##plot3
+##histogram showing the distribution of customers who started doing business with Swire, grouped by the month in which they were onboarded.
+
+cust %>%
+ggplot(aes(x = ON_BOARDING_MONTH)) +
+stat_count(width = 0.5,
+show.legend = F,
+alpha = .5) +
+labs(title = "Distribution of Swire's Customer On-Boarding by Month",
+x = "Month",
+y = "Customer Count")+
+  theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+```
+
+The histogram illustrates the month during which the customer on-boarding process experiences the highest peak.
+
+This graph displays a histogram showing the distribution of customers who started doing business with Swire, grouped by the month in which they were on-boarded. The x-axis shows the month and the y-axis represents the count of customers on-boarded.Months are represented in numeric order(i.e 1= Jan, 2-Feb, 3-March, 4-April, 5-May, 6-June, 7-July, 8-August, 9-Sept, 10-Oct, 11-Nov, 12-Dec).The graph indicates that the months with the highest number of customers on-boarded were March and May, followed by June.
+
+
+### Plot4 : Distribution of Calorie Categories in Selected Beverage Categories
+
+**Is the profit generated from regular calorie beverages higher than that of low calorie ones?**
+
+```{r plot4}
+
+#plot4
+##Beverages distribution and calorie comparison
+cs_sales %>%
+drop_na(BEV_CAT_DESC, CALORIE_CAT_DESC) %>%
+filter(BEV_CAT_DESC %in% c("CORE SPARKLING","FRUIT/VEGETABLE STILL DRINKS", "ENERGY DRINKS", "SPORTS DRINKS","PACKAGED WATER (PLAIN & ENRICHED)")) %>%
+ggplot(aes(BEV_CAT_DESC, fill = CALORIE_CAT_DESC)) +
+geom_bar(stat = "count", alpha = .5,
+position="dodge",
+show.legend = F)+
+labs(title = "Distribution of Calorie Categories in Selected Beverage Categories",
+x = "Beverage category",
+y = "Count") +
+theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10,angle = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+```
+
+This graph represents Comparison of Calorie Categories in Beverage Sales: Regular vs. Low Calorie Beverages. Blue bar represents Regular Calorie and Pink bar represents Low Calorie. It is evident from the graph that customers tend to buy more regular calorie beverages compared to low calorie beverages, with one exception being packaged water (plain and enriched), where customers tend to buy more low calorie beverages.
+
+
+### Plot5 : The Mean Profit in Each Beverage Category
+
+**What are the profits associated with each category of beverages?**
+
+```{r plot5}
+
+#PLOT6 
+#Average gross profit in each beverage category
+cs_sales %>%
+filter( BEV_CAT_DESC %in% c("CORE SPARKLING", "ENERGY DRINKS", "PACKAGED WATER (PLAIN & ENRICHED)", "SPORTS DRINKS","TEA", "FRUIT/VEGETABLE STILL DRINKS", "ENHANCED WATER BEVERAGES", "OTHER NONALCOHOLIC BEVERAGES", "JUICES/NECTARS", "COFFEE", "DAIRY/SOY BEVERAGES")) %>%
+group_by(BEV_CAT_DESC) %>%
+mutate(mean_by_Bev_cat = mean(GROSS_PROFIT_DEAD_NET)) %>%
+ungroup() %>%
+mutate(BEV_CAT_DESC = fct_reorder(BEV_CAT_DESC, mean_by_Bev_cat)) %>%
+ggplot(aes(BEV_CAT_DESC, GROSS_PROFIT_DEAD_NET, colour = BEV_CAT_DESC,
+show.legend = F)) +
+coord_flip() +
+stat_summary(fun = mean, geom = "point", size = 8, show.legend = F) +
+geom_hline(aes(yintercept = mean(GROSS_PROFIT_DEAD_NET))) +
+geom_segment(aes(x = BEV_CAT_DESC, xend = BEV_CAT_DESC,
+y = mean(GROSS_PROFIT_DEAD_NET), yend = mean_by_Bev_cat),
+ show.legend = F) +
+labs(title = "Average Profit in each Beverage category",
+x = "Beverage category",
+y = "Gross profit") +
+theme(legend.position = "none") +
+theme_bw() +
+  theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+```
+
+Above graph is grouping the sales data by beverage category and then calculating the mean gross profit in each category. It then reorders the beverage categories based on their mean profit and creates a plot showing the mean profit for each category, as well as a horizontal line representing the overall mean profit across all categories. Each point on the plot represents the mean profit for a given beverage category, and the size and color of the points correspond to the beverage category.
+
+This graph shows the comparison of the gross average profit to the category average profit for each beverage category. The mean profit of packaged water, core sparkling, Other Nonalcoholic beverages  and juices/nectars are higher than the gross average profit. This suggests that these categories may be more profitable for the business.
+
+
+### Plot6 : The top 5 counties with the highest number of customers
+
+**Does location/geographical factors influence the success/failure of restaurants?**
+
+```{r GROUPBY1}
+
+#listing county in increasing order of customers
+cs_sales %>% 
+  select(CUSTOMER_NUMBER_BLINDED, COUNTY) %>% 
+  group_by(COUNTY) %>% 
+  summarize(n=n()) %>% 
+  arrange(desc(n)) 
+```
+
+MARICOPA, SALT LAKE, KING, PIERCE, PIMA, MULTNOMAH are the top 5 counties where the number of customers are high
+
+
+```{r PLOT6}
+
+#Plot6
+#The top 5 counties with the highest number of customers are being identified
+cs_sales %>% 
+  select(CUSTOMER_NUMBER_BLINDED, COUNTY) %>% 
+  filter(COUNTY %in% c("MARICOPA", "SALT LAKE", "KING", "PIERCE", "PIMA")) %>%
+  group_by(COUNTY) %>% 
+  summarize(n=n()) %>% 
+  arrange(desc(n)) %>% 
+  ggplot(., mapping = aes(x=reorder(COUNTY, n), y =n))+
+  geom_bar(stat = "identity", width=.8, position = position_dodge(width = .25))+
+  labs(
+    title = "The top 5 counties with the highest number of customers",
+    y= "Count of customers",
+    x = "County"
+  )+
+  coord_flip() +
+  theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+
+```
+
+This bar chart illustrates the number of customers in the top 5 counties, with Maricopa county having a significantly higher count than the rest. Salt Lake and KING follow closely in customer count, while Pierce and Pima have relatively lower numbers of customers. Hence These counties make more profit
+
+```{r profitLoc}
+
+cs_sales %>% 
+  filter(COUNTY %in% c("MARICOPA", "SALT LAKE", "KING", "PIERCE", "PIMA")) %>%
+  group_by(COUNTY) %>% 
+  summarize(Gross_profit = sum(GROSS_PROFIT_DEAD_NET),
+            Average_profit = mean(GROSS_PROFIT_DEAD_NET),
+            Median = median(GROSS_PROFIT_DEAD_NET)) %>%
+  arrange(desc(Gross_profit))
+```
+
+##Profit in each beverage category
+
+```{r Table1}
+#Summary tables
+##Profit in Each beverage category till now
+cs_sales %>% 
+  group_by(BEV_CAT_DESC) %>% 
+  summarize(Gross_profit = sum(GROSS_PROFIT_DEAD_NET),
+            Average_profit = mean(GROSS_PROFIT_DEAD_NET),
+            Median = median(GROSS_PROFIT_DEAD_NET)) %>%
+  arrange(desc(Gross_profit))
+
+```
+
+The above code groups the data by Beverage category and calculates the total gross profit, average profit, and median for each category. The results are then arranged in descending order of gross profit.
+
+The table shows that Core sparkling has the highest gross profit, followed by packaged water, energy drinks, and sports drinks, based on the sum of the gross profit for each beverage category. However in this analysis We have considerd gross profit and did not take into account other factors such as production cost or sales volume.
+
+
+## T-Test to measure the impact of discount on gross profit
+
+**What are the marketing strategies and its impact on success of restaurants?**
+
+```{r ttest}
+
+# Separate sales data into two data frames: one for transactions with discounts, one for transactions without discounts
+sales_with_discounts <- filter(cs_sales, DISCOUNT > 0)
+sales_without_discounts <- filter(cs_sales, DISCOUNT == 0)
+
+# Perform t-test to compare mean profit of transactions with discounts to those without discounts
+t.test(sales_with_discounts$GROSS_PROFIT_DEAD_NET, sales_without_discounts$GROSS_PROFIT_DEAD_NET, var.equal = TRUE)
+```
+
+Offering discounts is the marketing strategy used. Below is the explanation to the analysis made.
+Here We have performed t-test to compare mean profit of transactions with discounts to those without discounts.
+
+The output of the t-test indicates that the difference in mean gross profit dead net between transactions with discounts and those without discounts is statistically significant, as the p-value is less than the significance level of 0.05. The t-value of 162.69 and the degrees of freedom of 824896 also suggest a large difference between the two groups.
+
+The mean gross profit dead net for transactions with discounts is significantly higher than those without discounts, with a mean of 260.97813 for transactions with discounts and 15.88032 for transactions without discounts. The 95% confidence interval of (242.1450, 248.0506) suggests that we can be 95% confident that the true difference in mean gross profit dead net between the two groups falls within this range.
+
+Therefore, it appears that offering discounts has a positive effect on gross profit dead net, as the mean gross profit dead net for transactions with discounts is significantly higher than those without discounts.
+
+
+## Linear regression model
+
+**What factors/variables play an important role in predicting the success of restaurant?**
+
+**How to determine the relationship between variables and their impact on revenue/success of restaurants?**
+
+```{r LinearReg, max.height='400px', class.output="moon"}
+#Converting STRING  to factor variables
+cs_sales$BEV_CAT_DESC <- factor(cs_sales$BEV_CAT_DESC)
+cs_sales$CALORIE_CAT_DESC<- factor(cs_sales$CALORIE_CAT_DESC)
+cs_sales$PACK_TYPE_DESC<- factor(cs_sales$PACK_TYPE_DESC)
+cs_sales$PACK_SIZE_SALES_UNIT_DESCRIPTION<- factor(cs_sales$PACK_SIZE_SALES_UNIT_DESCRIPTION)
+cs_sales$SALES_OFFICE_DESCRIPTION<- factor(cs_sales$SALES_OFFICE_DESCRIPTION)
+cs_sales$DELIVERY_PLANT_DESCRIPTION<- factor(cs_sales$DELIVERY_PLANT_DESCRIPTION)
+cs_sales$ADDRESS_CITY<- factor(cs_sales$ADDRESS_CITY)
+cs_sales$ADDRESS_ZIP_CODE<- factor(cs_sales$ADDRESS_ZIP_CODE)
+cs_sales$COUNTY<- factor(cs_sales$COUNTY)
+cs_sales$CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTION<- factor(cs_sales$CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTION)
+cs_sales$CUSTOMER_TRADE_CHANNEL_DESCRIPTION<- factor(cs_sales$CUSTOMER_TRADE_CHANNEL_DESCRIPTION)
+cs_sales$CUSTOMER_SUB_TRADE_CHANNEL_DESCRIPTION<- factor(cs_sales$CUSTOMER_SUB_TRADE_CHANNEL_DESCRIPTION)
+cs_sales$BUSINESS_TYPE_EXTENSION_DESCRIPTION<- factor(cs_sales$BUSINESS_TYPE_EXTENSION_DESCRIPTION)
+cs_sales$CUSTOMER_TRADE_CHANNEL_DESCRIPTION2<- factor(cs_sales$CUSTOMER_TRADE_CHANNEL_DESCRIPTION2)
+cs_sales$MARKET_DESCRIPTION<- factor(cs_sales$MARKET_DESCRIPTION)
+cs_sales$COLD_DRINK_CHANNEL_DESCRIPTION<- factor(cs_sales$COLD_DRINK_CHANNEL_DESCRIPTION)
+cs_sales$ON_BOARDING_MONTH<- factor(cs_sales$ON_BOARDING_MONTH)
+
+lm.out<- lm(GROSS_PROFIT_DEAD_NET ~ BEV_CAT_DESC+DISCOUNT+INVOICE_PRICE+CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTION, cs_sales)
+
+summary(lm.out)
+
+```
+
+Here We am performing a linear regression on the cs_sales dataset with GROSS_PROFIT_DEAD_NET as the target variable and BEV_CAT_DESC, DISCOUNT, CALORIE_CAT_DESC, INVOICE_PRICE, CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTION, and ON_BOARDING_MONTH as the predictor variables. 
+
+The summary of the model shows coefficient estimates, the standard error, t-value, and p-value for given each predictor variable. The p-value for each predictor variable gives an indication of whether the variable is statistically significant or not. If the p-value is less than 0.05, the variable is considered significant.
+The R-squared value gives an indication of the proportion of the variability in the response variable that is explained by the predictor variables. Based on the output, the following variables are statistically significant at the 5% level.
+
+BEV_CAT_DESCCORE SPARKLING,
+BEV_CAT_DESCENERGY DRINKS,
+BEV_CAT_DESCFRUIT/VEGETABLE STILL DRINKS,
+BEV_CAT_DESCJUICES/NECTARS,
+BEV_CAT_DESCOTHER NONALCOHOLIC BEVERAGES,
+BEV_CAT_DESCPACKAGED WATER (PLAIN & ENRICHED),
+BEV_CAT_DESCTEA,
+DISCOUNT,
+INVOICE_PRICE,
+CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTIONEating & Drinking,
+CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTIONEducationa,l
+CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTIONEntertainment/Recreation,
+CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTIONThird Party (Non-Consumer),
+CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTIONTravel/Transportation,
+ON_BOARDING_MONTH2,
+ON_BOARDING_MONTH3,
+ON_BOARDING_MONTH4,
+ON_BOARDING_MONTH5,
+ON_BOARDING_MONTH9.
+
+Multiple R-squared is a measure of how well the model fits the data. It ranges from 0 to 1, with higher values indicating a better fit. In this case, the multiple R-squared value is 0.6256, which means that the model explains 62.56% of the variation in the response variable.
+
+
+## Result
+
+**How to make informed decision from the results available from the analysis?**
+
+Below is the list of insights conclusions related to the data analysis We made.
+
+-The profitability of different beverage categories can vary significantly. Core Sparkling appears to be the most profitable Beverage, with Packaged Water (Plain & Enriched), Energy Drinks, and Sports Drinks also performing well. However, these findings are based solely on gross profit and not based on other factors such as production costs or sales volume. In addition, profitability can vary depending on whether a beverage is classified as low calorie or regular calorie.
+
+-Offering discounts appears to have a positive impact on gross profit. T-tests comparing the mean gross profit of transactions with and without discounts show that the difference is statistically significant, transactions with discounts showing significantly higher gross profit. This suggests that offering discounts may be an effective marketing strategy for boosting profitability.
+
+-In terms of sales trends, the data indicates that customers tend to buy more regular calorie beverages than low calorie beverages, with the exception of Packaged Water (Plain & Enriched). This suggests that there may be opportunities to promote and increase sales of low calorie beverages, particularly in categories where they are currently less popular.
+
+-The data also reveals that customer on-boarding is highest in March and June, with April and May following closely behind. This information could be useful for planning and scheduling marketing and sales initiatives.
+
+-The analysis includes a breakdown of the number of customers by county, with Maricopa County having significantly more customers than other counties. Salt Lake and King Counties also have relatively high numbers of customers, followed by Pierce and Pima Counties.
+
+-Based on performing linear regression, it was discovered that there is a strong relationship between the target variable Gross profit and several dependent variables, including beverage category, discounts, and customer activity clusters. These variables can be considered significant and can be further analyzed to gain additional insights.
+
+During the analysis, some data issues were encountered, including missing values and empty fields, which were addressed by data pre-processing techniques. Furthermore, there were errors in data entry, with incorrect county names recorded in some rows. Overall, EDA influenced my thinking of analytics approach by providing valuable insights and helped guiding the selection of appropriate analytical approaches to make informed decisions and draw meaningful conclusions from the data.
+
+During my analysis, We have taken ethical considerations into account, particularly in handling sensitive information such as customer location data, including the region and zip code. To ensure the privacy and security of this information, appropriate measures were implemented. The analysis was conducted in a fair and unbiased manner.
+
+
+# MODELING
+
+Here I am focusing on estimating success of Swire-coca cola by predicting total 3-year sales volume of  customers, enabling Swire Coca-Cola to make data-driven decisions on discount and pricing.
+
+## Data preparation
+
+```{r dataprep}
+
+cs_sales_model <- cs_sales1[,c( "CUSTOMER_NUMBER_BLINDED","CALORIE_CAT_DESC", "BEV_CAT_DESC", "PACK_SIZE_SALES_UNIT_DESCRIPTION","PACK_TYPE_DESC", "PHYSICAL_VOLUME", "COGS", "NUM_OF_TRANSACTIONS",  "INVOICE_PRICE", "GROSS_PROFIT_DEAD_NET", "DISCOUNT")]
+
+#cs_sales_model$PROFIT_LOSS <-ifelse(cs_sales_model$GROSS_PROFIT_DEAD_NET <= 0, "Loss/No-Profit","Profit")
+#cs_sales_model$PROFIT_LOSS <-ifelse(cs_sales_model$GROSS_PROFIT_DEAD_NET < 0, "Loss",ifelse(cs_sales_model$GROSS_PROFIT_DEAD_NET==0,"NO_PROFIT","PROFIT"))
+
+model_dataset<-cs_sales_model %>% select (CUSTOMER_NUMBER_BLINDED,CALORIE_CAT_DESC,BEV_CAT_DESC, PACK_SIZE_SALES_UNIT_DESCRIPTION, PACK_TYPE_DESC, PHYSICAL_VOLUME, COGS, NUM_OF_TRANSACTIONS,DISCOUNT) %>% filter(CALORIE_CAT_DESC %in% c("LOW CALORIE", "REGULAR CALORIE")) %>% filter(BEV_CAT_DESC %in% c("COFFEE", "CORE SPARKLING", "DAIRY/SOY BEVERAGES", "ENERGY DRINKS", "ENHANCED WATER BEVERAGES", "FRUIT/VEGETABLE STILL DRINKS", "JUICES/NECTARS", "OTHER NONALCOHOLIC BEVERAGES", "PACKAGED WATER (PLAIN & ENRICHED)", "SPORTS DRINKS")) %>% group_by(CUSTOMER_NUMBER_BLINDED,CALORIE_CAT_DESC,BEV_CAT_DESC, PACK_SIZE_SALES_UNIT_DESCRIPTION, PACK_TYPE_DESC) %>%
+  summarize(
+            PHYSICAL_VOLUME = median(PHYSICAL_VOLUME),
+            COGS = median(COGS),
+            NUM_OF_TRANSACTIONS = median(NUM_OF_TRANSACTIONS),
+            DISCOUNT = median(DISCOUNT)
+            )%>% distinct()
+
+#a<-model_dataset %>% select(PROFIT_LOSS,DISCOUNT)%>%group_by(DISCOUNT,PROFIT_LOSS)%>% summarize(count=n())%>% arrange(desc(DISCOUNT))
+#model_dataset
+```
+
+I have already managed NA values in the EDA session under Data Loading and pre-processing.
+
+In this step of data preparation for the model, I am identifying the maximum values of PHYSICAL_VOLUME, COGS, NUM_OF_TRANSACTIONS, and DISCOUNT grouped by CUSTOMER_NUMBER_BLINDED, CALORIE_CAT_DESC, BEV_CAT_DESC, PACK_SIZE_SALES_UNIT_DESCRIPTION, and PACK_TYPE_DESC. This is necessary because in some cases, customers may have multiple transactions with varying physical volumes. For instance, a customer may have a minimum posting date of 12/02/2021 and a MAX_POSTING_DATE of 12/03/2022 with a physical volume of 5, and the same customer may have a minimum posting date of 12/01/2021 and a MAX_POSTING_DATE of 12/05/2022 with a physical volume of 8. Therefore, to ensure accuracy, we are considering the maximum physical volume for each group
+
+
+## Models considered
+
+Linear regression: Linear regeression is a statistical technique that is used to model the relationship between a dependent variable and one or more independent variables. In this case I am considering CALORIE_CAT_DESC,BEV_CAT_DESC, PACK_TYPE_DESC, COGS, NUM_OF_TRANSACTIONS,DISCOUNT as independent variables. Running  a linear regression model to determine the relationship between these variables and the PHYSICAL_VOLUME . This will involve fitting a line to the data that best represents the relationship between the independent variables and the target variable.
+
+  *Ridge regression and Lasso regression : Ridge/lasso regression is a regularization technique used in linear         regression models to prevent overfitting and improve the model's generalizability. Here I am using ridge/lasso      regression for improving the performance of linear regression models by removing multicollinearity and noisy        data.
+                
+Decision Tree: It is a type of supervised machine learning algorithm that can be used for both classification and regression tasks. In this case, I can use a decision tree to predict the success or profitability of new Swire customers, specifically local restaurants. Decision trees work by partitioning the data based on the values of the predictor variables, and recursively subdividing the data until a stopping criterion is met. This results in a tree-like structure where each internal node represents a decision based on the predictor variables, and each leaf node represents a predicted outcome.
+      
+Random Forest: Random Forest is a powerful ensemble learning method that can handle various tasks such as classification and regression by creating multiple decision trees during the training process. The model outputs the mode of classes for classification or the mean prediction for regression of all the individual trees. Random Forest has the ability to handle non-linearity, missing data, high-dimensional data, imbalanced classes, and can provide feature importance ranking. In this scenario, the target variable is the IS_PH_VOLUME , which is categorized into two categories: High and Low. The Random Forest model was chosen because it can handle a mix of categorical and numeric features, and can automatically select the most important features for predicting profit, which can be useful for business decision-making.
+
+## Removing outliers 
+
+
+```{r outliers }
+
+# Create a normal probability plot
+qqnorm(model_dataset$PHYSICAL_VOLUME)
+qqline(model_dataset$PHYSICAL_VOLUME)
+hist(model_dataset$PHYSICAL_VOLUME)
+
+
+#the interquartile range (IQR) method can be used to identify and eliminate outliers even if the dataset is not normally distributed
+quartiles <- quantile(model_dataset$PHYSICAL_VOLUME, probs=c(.25, .75), na.rm = FALSE)
+IQR <- IQR(model_dataset$PHYSICAL_VOLUME)
+Lower <- quartiles[1] - 1.5*IQR
+Upper <- quartiles[2] + 1.5*IQR 
+Lower
+Upper 
+
+model_dataset<-ungroup(model_dataset)
+
+model_dataset<-model_dataset %>% filter(model_dataset$PHYSICAL_VOLUME>Lower & model_dataset$PHYSICAL_VOLUME < Upper)
+
+# Create a histogram of the cleaned data
+hist(model_dataset$PHYSICAL_VOLUME)
+model_dataset <- model_dataset[,-1]
+
+model_dataset <- model_dataset[,-3]
+model_dataset1 <- model_dataset
+#model_dataset1<-model_dataset[,-7]
+#model_dataset<-model_dataset[,-4]
+#View(model_dataset)
+model_dataset
+
+model_dataset1 <- model_dataset
+```
+As the QQ-plot indicates that the data is right skewed and not normally distributed, using the IQR method is more suitable approach for identifying and removing outliers. However, in the EDA data load and pre-processing session, I had used the z-score method to eliminate outliers. To increase the robustness of the outlier detection and removal process, using both the z-score and IQR methods together can help to identify outliers based on their distance from the mean and their deviation from the interquartile range. This can provide a more comprehensive and robust approach to outlier detection.
+
+In this data-set PACK_SIZE_SALES_UNIT_DESCRIPTION, PACK_TYPE_DESC is highly correlated to each other so I am removing PACK_SIZE_SALES_UNIT_DESCRIPTION
+
+```{r factorizing}
+
+model_dataset$CALORIE_CAT_DESC <- factor(model_dataset$CALORIE_CAT_DESC)
+model_dataset$BEV_CAT_DESC <- factor(model_dataset$BEV_CAT_DESC)
+#model_dataset$COUNTY <- factor(model_dataset$COUNTY)
+#model_dataset$MARKET_DESCRIPTION <- factor(model_dataset$MARKET_DESCRIPTION)
+#model_dataset$PACK_SIZE_SALES_UNIT_DESCRIPTION <- factor(model_dataset$PACK_SIZE_SALES_UNIT_DESCRIPTION)
+model_dataset$PACK_TYPE_DESC <- factor(model_dataset$PACK_TYPE_DESC)
+
+#levels(model_dataset$PACK_SIZE_SALES_UNIT_DESCRIPTION)
+
+#Testing is there any NA columns in the dataset
+#model_dataset %>%filter(!complete.cases(.)) %>% View()
+
+```
+
+Here I am factorizing all the categorical variables.
+
+
+## Partitioning dataset for simple hold-out evaluation
+
+```{r holdout}
+
+#Partitioning dataset for simple hold-out evaluation(70% for training and 30% for testing)
+set.seed(100)
+inTrain <- createDataPartition(model_dataset$PHYSICAL_VOLUME, p=0.7, list=FALSE)
+
+train_target <- model_dataset[inTrain,4]
+test_target <- model_dataset[-inTrain,4]
+test_target <- unlist(test_target)
+train_target <- unlist(train_target)
+train_input <- model_dataset[inTrain,-4]
+test_input <- model_dataset[-inTrain,-4]
+
+```
+
+## Linear Regression
+ 
+### Performing linear regression on trained dataset
+
+```{r lm, max.height='400px', class.output="moon"}
+#Linear regression model
+
+# Train the models using lm
+ga_lm_train_model <- lm(train_target~., data = train_input)
+
+#specifying model names and summary
+summary(ga_lm_train_model)
+
+```
+
+It is commonly used to determine the statistical significance of a variable by setting a significance threshold of p < 0.05. However, in this model output,CALORIE_CAT_DESC,BEV_CAT_DESC and some of the factors of PACK_TYPE_DESC, DISCOUNT, COGS, NUM_OF_TRANSACTIONS  are statistically significant in determining the PHYSICAL_VOLUME. All the variables havong p value is less than 0.05, indicating that there is enough evidence to reject the null hypothesis that their coefficients are equal to zero. While this suggests that these variables have a statistically significant effect on the target variable PHYSICAL_VOLUME,
+
+
+### predict on the train and test data based on train base model 
+```{r predLM}
+#predict on the train data based on train base model 
+prediction_lm_train <- predict(ga_lm_train_model, train_input)
+
+#predict on the test data based on train base model .
+prediction_lm_test<-predict(ga_lm_train_model, test_input)
+
+```
+
+### Performance metrics 
+```{r performanceLM}
+#generating the model-fit (R2) and prediction error metrics (MAE, MAPE, RAE, RMSE, RMSPE, RRSE)  in both the testing and training sets
+mmetric(test_target,prediction_lm_test,c("MAE","RAE","RMSE","RRSE", "R2"))
+
+# performance of predictions on training data
+mmetric(train_target,prediction_lm_train,c("MAE","RAE","RMSE", "RRSE", "R2"))
+```
+
+The code is evaluating the performance of a linear regression model on both the testing and training sets. The metrics being used are MAE (Mean Absolute Error), RAE (Relative Absolute Error), RMSE (Root Mean Squared Error), RRSE (Relative Root Mean Squared Error), and R2 (Coefficient of Determination).
+
+Although the R2 value of the model is decent at 0.6899, its overall performance is not satisfactory given the high RMSE value of 6.608 on the testing set. Additionally, both RAE and RRSE indicate significant prediction errors of the model compared to the target variable values.
+
+To improve the model's performance, we can try implementing lasso and ridge regression techniques on the existing linear model. These techniques can help reduce the model's overfitting and improve its prediction accuracy.
+
+### Model Tuning and Cross validation
+
+#### Ridge regression model using cross-validation
+
+In preparation of lasso/ridge models, creates a matrix for the training and testing data  
+
+Ridge regression is a regularization technique used in linear regression to prevent overfitting.which shrinks the coefficients of the regression variables towards zero, but never exactly to zero, unlike Lasso regression. Here we are using a hyperparameter called lambda, which determines the trade-off between the magnitude of the coefficients and the model's fit to the training data. 
+
+```{r ridge }
+
+ridge_training_input <- model.matrix(train_target ~., data=train_input)
+
+ridge_training_target <- train_target
+
+set.seed(123)
+(sales_ridge <- train(y = ridge_training_target,
+                        x = ridge_training_input,
+                        method = "glmnet", 
+                        preProcess = c("center","scale"),
+                        trControl = trainControl(method = "cv",  # bootstrapping
+                                                 number = 5,
+                                                 verboseIter = T),
+                        tuneGrid= expand.grid(alpha=0,lambda = seq(0,5, .1)))) %>% summary()
+
+#Best tuning lambda
+sales_ridge$bestTune$lambda
+
+#Estimating ridge regression for training dataset
+ridge_training <- glmnet(ridge_training_input,ridge_training_target,alph = 0,lambda=sales_ridge$bestTune$lambda,standardsize=TRUE)
+
+#Reporting test error
+ridge_testing_input <- model.matrix(PHYSICAL_VOLUME ~., data=model_dataset[-inTrain,])
+ridge_testing_target<-unlist(test_target)
+
+## Make predictions using the cross-validated model
+predictions <-predict(ridge_training,s=sales_ridge$bestTune$lambda,newx=ridge_testing_input)
+mmetric(predictions,ridge_testing_target,c("MAE","RMSE","MAPE","RMSPE","RAE","RRSE","R2"))
+
+```
+
+The training data is split into 5 folds for cross-validation, with the data pre-processed by centering and scaling the predictor variables using preProcess = c("center", "scale"). The train function is used to fit the model, with method = "glmnet" specifying Ridge regression with alpha set to 0. The tuneGrid argument specifies a grid of lambda values ranging from 0 to 5 in increments of 0.1.
+
+After cross-validation is performed, the best tuning parameter (lambda) is determined using sales_ridge$bestTune$lambda which is 0.8. The Ridge regression model is then fit to the full training dataset using the best lambda value, with the resulting model used to make predictions on the testing data. The performance of the model is evaluated using several metrics including MAE, RMSE, MAPE, RMSPE, RAE, RRSE, and R2.
+
+It appears that the RMSE value obtained from the Ridge regression model is not significantly better than other models or baselines, so it may not be the best choice . 
+
+#### Lasso regression model using cross-validation
+
+lasso regression is a technique that can be used for variable selection and regularization in linear regression models. It shrinks the coefficients of less important variables towards zero, which effectively performs feature selection by eliminating some of the variables from the model. 
+
+```{r lasso }
+lasso_training_input <- model.matrix(train_target ~., data=train_input)
+
+lasso_training_target <- train_target
+
+
+set.seed(123)
+(sales_lasso <- train(y = lasso_training_target,
+                        x = lasso_training_input,
+                        method = "glmnet", 
+                        preProcess = c("center","scale"),
+                        trControl = trainControl(method = "cv",  # bootstrapping
+                                                 number = 5,
+                                                 verboseIter = T),
+                        tuneGrid= expand.grid(alpha=1,lambda = seq(0,5, .1)))) %>% summary()
+
+#Best tuning lambda
+sales_lasso$bestTune$lambda
+
+#Estimating lasso regression for training dataset
+lasso_training <- glmnet(lasso_training_input,lasso_training_target,alph = 0,lambda=sales_lasso$bestTune$lambda,standardsize=TRUE)
+
+#Reporting test error
+lasso_testing_input <- model.matrix(PHYSICAL_VOLUME ~., data=model_dataset[-inTrain,])
+lasso_testing_target<-test_target
+
+## Make predictions using the cross-validated model
+predictions <-predict(lasso_training,s=sales_lasso$bestTune$lambda,newx=lasso_testing_input)
+mmetric(predictions,lasso_testing_target,c("MAE","RMSE","MAPE","RMSPE","RAE","RRSE","R2"))
+
+```
+
+Using the same methods as for Ridge regression, I have applied Lasso regression with an alpha value of 1. However, the resulting output indicates that neither the RMSE nor the R2 value has shown significant improvement compared to other models or baselines. Therefore, it appears that Lasso regression with alpha=1 may not be the best model for this particular situation.
+
+## Decision Tree
+
+A decision tree is a type of model that makes predictions by recursively splitting the data into smaller and smaller groups based on the most important features until a stopping criterion is reached, and then predicts the outcome based on the majority class of the final group. 
+
+### Building decision tree model
+
+```{r decisionTree}
+# Train the models using rpart on the training set
+library(rpart.plot)
+ga_rpart_train_model <- rpart(train_target~., data = train_input)
+rpart.plot(ga_rpart_train_model)
+
+
+```
+
+### Predict on the test and trained data based on train base model
+
+```{r dec1}
+#predict on the test data based on train base model .
+
+prediction_rpart_test<-predict(ga_rpart_train_model,test_input)
+
+#predict on the train data based on train base model 
+
+prediction_rpart_train <- predict(ga_rpart_train_model, train_input)
+
+```
+
+###Performance metrics
+
+```{r pm}
+
+#generating the model-fit (R2) and prediction error metrics (MAE, MAPE, RAE, RMSE, RMSPE, RRSE)  in both the testing and training sets
+mmetric(test_target,prediction_rpart_test,c("MAE","RAE","RMSE", "RRSE", "R2"))
+
+
+# performance of predictions on training data
+mmetric(train_target,prediction_lm_train,c("MAE","RAE","RMSE","RRSE", "R2"))
+
+```
+Based on the evaluation metrics, we can see that the testing data has a lower RMSE and a higher R2 value compared to the training data, indicating that the model performs better on the testing data. However, the model we evaluated has a lower RMSE value and higher R2 value compared to linear regression model test data. 
+
+### Model tuning
+
+```{r mtune}
+
+#Finding best CP value
+
+ga_rpart_train_model <- rpart(train_target~., data = train_input,control=rpart.control(cp = 0.02,minsplit=5,minbucket=10))
+printcp(ga_rpart_train_model)
+rpart.plot(ga_rpart_train_model)
+
+
+```
+I have kept minimumsplit as 5 which means no more than 5 split in each node can be done. Here CP is the tuning parameter as CP value decreases the model becomes more accurate but we also should keep in mind that it should not overfit. For CP value 0.02 the standard error is 0.0016736 and xerror is 0.29243.
+
+### Cross validation
+```{r crossval}
+
+model_dataset <- as.data.frame(model_dataset)
+cv_function <- function(df, target, nFolds, seedVal, method, metrics_list)
+{
+  set.seed(seedVal)
+  folds = createFolds(df[,target],nFolds) 
+  cv_results <- lapply(folds, function(x)
+  { 
+    test_target <- df[x,target]
+    test_input  <- df[x,-target]
+    train_target <- df[-x,target]
+    train_input <- df[-x,-target]
+
+    prediction_model <- method(unlist(train_target)~.,data=train_input,cp=0.02) 
+    prediction<- predict(prediction_model,test_input)
+    return(mmetric(unlist(test_target),prediction,metrics_list))
+  })
+  
+
+# Generating a table of fold-by-fold performance metrics, means and standard deviations of performance over all folds
+  cv_results_m <- as.matrix(as.data.frame(cv_results))
+  cv_mean<- as.matrix(rowMeans(cv_results_m))
+  cv_sd <- as.matrix(rowSds(cv_results_m))
+  colnames(cv_mean) <- "Mean"
+  colnames(cv_sd) <- "Sd"
+  kable(t(cbind(cv_results_m,cv_mean, cv_sd)),digits=2)
+}
+
+df <- model_dataset
+target <- 6
+seedVal <- 100
+nFolds <- 3
+
+# metric list
+metrics_list <- c("MAE","RMSE","RAE","RRSE","R2") 
+
+# rpart model with default setting 
+method <- rpart
+cv_function(df, target, nFolds, seedVal, method, metrics_list)
+
+```
+I have employed 3-fold cross validation to evaluate the performance of the rpart function with a cp value of 0.02 on the training data. Then, I have tested the trained model on the testing data.
+
+The mean values of MAE and RMSE are quite high, indicating poor performance of the model. The RAE and RRSE values are also high, indicating that the model's prediction errors are quite significant compared to the target variable values. The R2 value is moderate, indicating that the model explains some of the variance in the target variable, but not a large amount.
+
+Overall, this suggests that the decision tree model using rpart is not an appropriate method and may need to be revised or a different method should be explored. 
+
+
+## Random forest
+
+Here we are making some changes to the model dataset. We are finding the individual price of the product as well as average discounts offered for the product
+```{r random forest }
+
+model_dataset <-model_dataset1
+model_dataset <- as.data.frame(model_dataset)
+class(cs_sales)
+class(model_dataset)
+median(model_dataset$PHYSICAL_VOLUME)
+
+model_dataset$IS_PH_VOLUME <-ifelse(model_dataset$PHYSICAL_VOLUME <= median(model_dataset$PHYSICAL_VOLUME), "Low","High")
+ 
+#Making Changes to COGS(finding the cost of the product)
+model_dataset<-model_dataset%>%filter(model_dataset$PHYSICAL_VOLUME > 0)
+model_dataset$COGS <- model_dataset$COGS/model_dataset$PHYSICAL_VOLUME
+model_dataset$COGS <- round(model_dataset$COGS,2)
+
+model_dataset$DISCOUNT <- model_dataset$DISCOUNT/model_dataset$PHYSICAL_VOLUME
+model_dataset$DISCOUNT <- round(model_dataset$DISCOUNT)
+#Making Changes to COGS(finding the discount)
+model_dataset$COGS <- model_dataset$COGS/model_dataset$PHYSICAL_VOLUME
+
+#Finding the correlation between physical_volume and COGS
+cor(model_dataset$PHYSICAL_VOLUME,model_dataset$COGS)
+
+
+#Removing PHYSICAL_VOLUME COLUMN
+model_dataset <- model_dataset[,-4]
+#Removing total transaction
+model_dataset <- model_dataset[,-5]
+
+set.seed(1234)
+
+rm(sales)
+rm(cust)
+
+model_dataset$CALORIE_CAT_DESC <- factor(model_dataset$CALORIE_CAT_DESC)
+model_dataset$BEV_CAT_DESC <- factor(model_dataset$BEV_CAT_DESC)
+#model_dataset$COUNTY <- factor(model_dataset$COUNTY)
+#model_dataset$MARKET_DESCRIPTION <- factor(model_dataset$MARKET_DESCRIPTION)
+#model_dataset$PACK_SIZE_SALES_UNIT_DESCRIPTION <- factor(model_dataset$PACK_SIZE_SALES_UNIT_DESCRIPTION)
+model_dataset$PACK_TYPE_DESC <- factor(model_dataset$PACK_TYPE_DESC)
+model_dataset$IS_PH_VOLUME <- factor(model_dataset$IS_PH_VOLUME)
+
+##Partitioning dataset for simple hold-out evaluation(70% for training and 30% for testing)
+index = sample(2,nrow(model_dataset),replace=TRUE,prob=c(0.7,0.3))
+
+
+Training = model_dataset[index==1,]
+
+Testing = model_dataset[index==2,]
+
+```
+
+I am adding a new column named IS_PH_VOLUME to the dataset. This column is based on the PHYSICAL_VOLUME column. If the value in the PHYSICAL_VOLUME column is greater than the median value of the column, which is 4, then the corresponding value in the IS_PH_VOLUME column is classified as 'High.' Otherwise, it is classified as 'Low.'
+
+### Performing random forest on training data set
+
+```{r rfmodel}
+set.seed(1234)
+#build a random forest model 
+RFM = randomForest(IS_PH_VOLUME~.,data = Training)
+print(RFM)
+
+```
+The random forest model has been successfully trained on the Training data using the randomForest function. The output includes the out-of-bag (OOB) estimate of the error rate, which is a measure of how well the model is likely to perform on new, unseen data. In this case, the OOB error rate is 3.64%, which suggests that the model is performing reasonably well.
+
+
+Finally, the output displays a confusion matrix, which shows the number of observations that were correctly classified and misclassified by the model. The confusion matrix suggests that the model is good at predicting the High physical volume class (with only 2% misclassification rate), and Low class (with 5% misclassification rate) We can try to reduce these misclassification by tuning the parameters such as ntree, mtry
+
+### predict on the train and test data based on train base model 
+```{r CM}
+#Prediction and confusion Matrix - train data
+RFM_Train <- predict(RFM, Training)
+confusionMatrix(RFM_Train, Training$IS_PH_VOLUME, positive = 'High')
+
+#Prediction and confusion Matrix - test data
+RFM_pred =  predict(RFM,Testing)
+confusionMatrix(RFM_pred, Testing$IS_PH_VOLUME,positive = 'High')
+
+```
+
+Terms indication:
+
+Here  I am considering High as positive and Low as negative class.
+
+>TP - Correct predictions made for positive class.
+
+>TN - Correct predictions made for negative class.
+
+>FN - Cases incorrectly predicted negative for actual positive classes.
+
+>FP - Cases incorrectly predicted positive for actual negative classes.
+
+>sensitivity(TPR) -The number of correct positive predictions divided by the total number of positives.
+
+>specificity(TNR) - The number of correct negative predictions divided by the total number of negatives.
+
+>Pos Pred Value(Precision)- the number of correct positive predictions divided by the total number of positive predictions.
+
+>Neg Pred Value-the number of corrrect negative predictions divided by the total number of negative predictions.
+
+>Prevalence - This value indicates how many true or positive cases actually occurred out of all of the observations.
+
+>Balanced Accuracy -It’s the arithmetic mean of sensitivity and specificity, its use case is when dealing with imbalanced data.
+
+Here I am making prediction on the test and train data based on train base model. confusionMatrix is used to generate a confusion matrix for the test and train data.The confusion matrix provides information on the number of true positive, true negative, false positive, and false negative predictions, which can be used to evaluate the performance of the model on the test data.
+
+The train data has an accuracy of 96% with very well sensitivity, specificity, Pos Pred Value and Neg Pred Value.
+
+Prediction on test data has an accuracy of is 96%, which indicates that the model correctly predicted 97% of the test data. The sensitivity of the model is 97%, which means that the model correctly identified 96% of the 'High' values in the test data. The specificity of the model is 0.94, which means that the model correctly identified 94% of the 'Low' values in the test data.
+
+The positive predictive value (PPV) of the model is 0.96, which means that among the cases predicted as 'High', 98% of them were actually 'High'. The negative predictive value (NPV) of the model is also 0.96, which means that among the cases predicted as 'Low', 96% of them were actually 'Low'.
+
+Kappa value(the extent to which the data collected is correct representations of the variables measured) of 0.92 indicating a almost perfect agreement. Overall, the high accuracy, sensitivity, specificity, and PPV of the model indicate that it is performing well in predicting the target variable based on the test data.
+
+
+### Model tuning
+```{r }
+#Testing$profit_pred = RFM_pred
+#View(Testing)
+#performance improving by tuning parameters(mtry and ntreeTry)
+bestmtry <- tuneRF(Training[,-6],Training[,6],stepFactor = 0.5,ntreeTry = 250, improve = 0.01, trace=T, plot= T) 
+bestmtry
+
+
+```
+
+The tuneRF function is used to tune the mtry parameter in random forest by searching for the optimal value that minimizes the out-of-bag (OOB) error rate. Here, stepFactor controls the step size used in the search for the optimal mtry value. ntreeTry is the number of trees grown for each value of mtry during the search. improve sets the threshold for improvement in the OOB error rate.In this case, the best value of mtry appears to be 4, as it has the lowest OOB error rate of 0.0352. This indicates that using 4 variables per tree is optimal for the given dataset and model.
+
+#### rerunning the model with tuned parameters
+```{r tu}
+set.seed(1234)
+RFM = randomForest(IS_PH_VOLUME~., data = Training, ntree=250, mtry = 4 )
+print(RFM)
+
+#Prediction and confusion Matrix - train data
+RFM_Train <- predict(RFM, Training)
+confusionMatrix(RFM_Train, Training$IS_PH_VOLUME, positive = 'High')
+
+#Prediction and confusion Matrix - test data
+RFM_pred =  predict(RFM,Testing)
+confusionMatrix(RFM_pred, Testing$IS_PH_VOLUME,positive = 'High')
+
+```
+
+Tuning parameters has increased the accuracy of the model. For the training data, the model achieved an accuracy of 0.97 and correctly predicted 97% of the customers with high physical volumes. The performance on the test data was also good with an accuracy of 0.96 and correctly predicting 96% of customers with high physical volumes. These results suggest that the model is performing well in predicting the toal salees volume
+
+### Variable importance
+```{r variable importance}
+#Finding the variable importance
+varImpPlot(RFM)
+
+
+```
+
+The plot shows the importance of each variable in the model, ranked in descending order. The variables with higher importance values are considered more influential in predicting the target variable. We can observe from the graph that cost of the product has largely influenced the sales volume followed by COGS(Total cost of goods for materials sold during the whole timeframe), Pack type description and beverage category description, discount
+
+### Cross validation
+```{r cross validation}
+#CROSS VALIDATION
+
+set.seed(1234)
+# Define the cross-validation method
+control <- trainControl(method="cv", number=3)
+
+# Train the model using cross-validation
+model <- train(IS_PH_VOLUME~., data=Training, method="rf", 
+               trControl=control, ntree=250, importance=TRUE,tuneGrid = expand.grid(.mtry = 4))
+
+# Print the model results
+print(model)
+
+```
+
+Here training a random forest model using cross-validation with three folds (number=3) and. The model is trained on the Training dataset with the response variable PROFIT_LOSS and all the other available predictor variables.  In this case, three-fold cross-validation is used. The ntree parameter is set to 250, which specifies the number of trees to grow in the random forest.
+
+The model is trained using mtry value of 4 (the number of variables sampled at each split) and the one with the highest accuracy is selected as the optimal model. This model has an accuracy of 90% and a Kappa value of 0.81(Kappa value represent the extent to which the data collected in the study are correct representation of the variable measured) which is a almost perfect agreement.
+
+
+```{r predRF}
+
+
+# Make predictions using the cross-validated model
+predictions <- predict(model, newdata=Testing)
+Testing$IS_PH_VOLUME_TEST <-predictions
+
+#finding accuracy of test data using confusion matrix
+confusionMatrix(predictions, Testing$IS_PH_VOLUME,  positive = 'High')
+
+
+
+#Testing$profit_pred = predictions
+#Building confusion matrix
+#CFM = table(Testing$PROFIT_LOSS,Testing$profit_pred)
+#CFM
+
+#accuracy = sum(diag(CFM)/sum(CFM))
+#accuracy
+
+
+```
+
+Here we are finding the accuracy of the model on test data.Initially traing the random forest model using trained data later we are applying that model on test data to test the accuracy of the data model.In this process, we are first training a random forest model using the training dataset. We then use this model to make predictions on the test dataset and evaluate its accuracy. Specifically, we apply the model to the test dataset and obtain predicted values. We then compare these predicted values with the actual values of the target variable in the test dataset. This comparison is performed using a confusion matrix, which allows us to determine the accuracy of the model on the test data.
+
+We can see that the model correctly classified 91% of the test data, with an overall accuracy of 0.97. The kappa statistic, which measures the agreement between the predicted and actual values beyond chance, was 0.81, indicating a almost perfect agreement.
+
+The sensitivity, specificity, positive predictive value, and negative predictive value are performance measures for each class in the data. From the statistics by class, we can see that the model performed well in predicting the "High" physical volume class with a sensitivity of 0.95, negative class with specificity of 0.86, positive predictive value of 0.90, and negative predictive value of 0.93. 
+
+## Model selection
+
+The Random Forest model is a suitable approach for predicting business profitability as it can handle both categorical and numerical data and is resistant to overfitting. Furthermore, it provides feature importance measures that assist in identifying the most relevant variables in the model.
+
+To predict the profitability of a business, a Random Forest model was employed using various input features such as calorie category description, discount, beverage category, pack type description, and others. The model was trained on a training dataset and then validated using a separate testing dataset to assess its accuracy. The model's performance was evaluated using accuracy, which demonstrated that it accurately predicted high/Low Physical volume categories with an overall accuracy of 91%. The model correctly predicted 95% of the High class and 86% of the Low class out of the total classes. The model's kappa value was 0.82 after cross-validation, indicating that it almost perfectly predicted the target variables based on the independent variable. Therefore, the Random Forest model is a dependable tool for predicting business profitability based on the chosen input features.
+
+Why Random forest is best compared to other models?
+
+The superiority of the Random Forest model over other models such as Linear Regression and Decision Tree models is attributed to its high accuracy and superior performance measures for each class. The Random Forest model achieved an impressive accuracy rate of 90% on the test dataset, surpassing the accuracy rates of the other models. Moreover, the model's OOB error rate was relatively low at 3.5%, further highlighting its strong predictive capabilities compared to other models.
+
+On the other hand, the Linear Regression model, even after tuning with lasso and ridge, demonstrated poor performance metrics, including high RMSE and moderate R2 values. These outcomes indicate that the model had a higher error rate and was unable to precisely predict the target variable values. The Decision Tree model, while performing better than Linear Regression, still lagged behind the Random Forest model's performance metrics, which included RMSE and R2 values.
+
+Therefore, it can be inferred that the Random Forest model is the optimal choice for predicting total sales volume when compared to other models such as Linear Regression and Decision Tree models.
+
+## Model performance
+
+The Random Forest model's high accuracy rate of 91% on the test dataset, coupled with good performance measures for each class, suggests that it is an effective tool for accurately classifying large datasets and high-dimensional feature spaces. The model's low OOB error rate of 3.5% and Kappa value of 0.81 also indicate a high level of agreement and representativeness between the collected data and the measured variable.
+
+Although the Random Forest model's use of multiple decision trees can result in longer training times, its ability to handle vast datasets and high-dimensional feature spaces makes it a popular choice for many applications. Adjusting the number of trees and other hyperparameters can help mitigate this issue. In this particular project, we utilized a tree value of 250 and an mtry value of 4, which contributed to the extended model training time.
+
+The run time complexity of building a Random Forest model with mtry variables at each node and with ntree number of trees is O(mtryntreenlog(n)), where n represents the number of records.
+
+## Summary
+
+### validation
+
+Here we are validating the model.
+
+```{r validate}
+
+a <- data.frame(CALORIE_CAT_DESC=c('REGULAR CALORIE'),DISCOUNT = c(10), BEV_CAT_DESC = c('CORE SPARKLING'), PACK_TYPE_DESC = c('Shell'), COGS = c(98))
+result <- predict(model,a)
+print(result)
+```
+
+The new observation has values for the predictors CALORIE_CAT_DESC, DISCOUNT, BEV_CAT_DESC, PACK_TYPE_DESC,  and COGS.The random forest model previously trained on training data is then used to make a prediction on this new data frame.
+
+The model predicted value for the new data frame is Low physical volume(i.e physical volume<=4), and the possible levels for the predicted value are 'High' and 'Low'. This suggests that the random forest model predicts that this new observation will result High or low physical volume. Here below We am also giving some other observations to the model to predict.
+
+```{r validate1}
+
+a <- data.frame(CALORIE_CAT_DESC=c('LOW CALORIE'),DISCOUNT = c(125), BEV_CAT_DESC = c('COFFEE'), PACK_TYPE_DESC = c('Shell'), COGS = c(5))
+result <- predict(model,a)
+print(result)
+```
+
+```{r validate2}
+
+a <- data.frame(CALORIE_CAT_DESC=c('REGULAR CALORIE'),DISCOUNT = c(125), BEV_CAT_DESC = c('SPORTS DRINKS'), PACK_TYPE_DESC = c('Bag-In-Box'), COGS = c(280) )
+result <- predict(model,a)
+print(result)
+```
+
+```{r validate3}
+
+a <- data.frame(CALORIE_CAT_DESC=c('REGULAR CALORIE'),DISCOUNT = c(5), BEV_CAT_DESC = c('ENHANCED WATER BEVERAGES'), PACK_TYPE_DESC = c('Plastic Bottle - Other'), COGS = c(13) )
+result <- predict(model,a)
+print(result)
+```
+
+```{r validate4}
+a <- data.frame(CALORIE_CAT_DESC=c('REGULAR CALORIE'),DISCOUNT = c(5), BEV_CAT_DESC = c('FRUIT/VEGETABLE STILL DRINKS'), PACK_TYPE_DESC = c('Plastic Bottle - Other'), COGS = c(1) )
+result <- predict(model,a)
+print(result)
+
+```
+
+
+```{r validate5}
+Testing %>%group_by(IS_PH_VOLUME_TEST) %>%
+mutate(mean_by_Ph_volume = mean(COGS)) %>%
+ungroup() %>%
+mutate(IS_PH_VOLUME_TEST = fct_reorder(IS_PH_VOLUME_TEST, mean_by_Ph_volume)) %>%
+  ggplot(aes(IS_PH_VOLUME_TEST, COGS, colour = IS_PH_VOLUME_TEST,
+show.legend = F)) +
+coord_flip() +
+stat_summary(fun = mean, geom = "point", size = 8, show.legend = F) +
+geom_hline(aes(yintercept = mean(COGS))) +
+geom_segment(aes(x = IS_PH_VOLUME_TEST, xend = IS_PH_VOLUME_TEST,
+y = mean(COGS), yend = mean_by_Ph_volume),
+ show.legend = F) +
+labs(title = "Average cost of products in each category of sales volume",
+x = "Sales volume",
+y = "Cost of goods ") +
+theme(legend.position = "none") +
+theme_bw() +
+  theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+```
+
+```{r validate6}
+Testing %>%group_by(IS_PH_VOLUME_TEST) %>%
+mutate(mean_by_disc = mean(DISCOUNT)) %>%
+ungroup() %>%
+mutate(IS_PH_VOLUME_TEST = fct_reorder(IS_PH_VOLUME_TEST, mean_by_disc)) %>%
+  ggplot(aes(IS_PH_VOLUME_TEST, DISCOUNT, colour = IS_PH_VOLUME_TEST,
+show.legend = F)) +
+coord_flip() +
+stat_summary(fun = mean, geom = "point", size = 8, show.legend = F) +
+geom_hline(aes(yintercept = mean(DISCOUNT))) +
+geom_segment(aes(x = IS_PH_VOLUME_TEST, xend = IS_PH_VOLUME_TEST,
+y = mean(DISCOUNT), yend = mean_by_disc),
+ show.legend = F) +
+labs(title = "Average discount in each category of sales volume",
+x = "Sales volume",
+y = "Discount offered") +
+theme(legend.position = "none") +
+theme_bw() +
+  theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+
+```
+
+```{r validate 8}
+Testing %>%
+  filter(BEV_CAT_DESC %in% c("CORE SPARKLING", "ENERGY DRINKS", "PACKAGED WATER (PLAIN & ENRICHED)", "SPORTS DRINKS","TEA", "FRUIT/VEGETABLE STILL DRINKS", "ENHANCED WATER BEVERAGES", "OTHER NONALCOHOLIC BEVERAGES", "JUICES/NECTARS" )) %>%
+  ggplot(aes(x = COGS,
+             y = DISCOUNT,
+             color = IS_PH_VOLUME_TEST)) + 
+  geom_point()+
+  facet_wrap(~BEV_CAT_DESC)+
+  labs(title = "Cost of product based on sales volume in each beverage category",
+       x = "cost of the product") +
+  theme(plot.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        panel.background = element_rect(fill = "white", size = 1, linetype = "solid"),
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 22),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 10))
+
+
+
+```
+
+>Observations from the model predictions:
+
+>1)Sales volume appears to be strongly influenced by the cost of the product. When the cost is less than approximately 9 dollars, the sales volume is high. However, when the cost is higher than 9 dollars, the sales volume is low.
+
+>2)The above plot suggests that the discount offered does not have a significant effect on the sales volume.
+
+>3)Another important finding is that sales volume tends to be higher when the cost of the product is lower.
+
+### Conclusion
+
+The analysis using a random forest model revealed that the cost of the product, pack type description, and beverage category are the most influential variables in determining the total sales volume of Swire Coca-Cola. This finding highlights the need for Swire Coca-Cola to prioritize pricing strategies to increase sales volume.
+
+The model was able to predict the sales volume accurately for customers by using historical data to forecast total 2-year sales volume. The model revealed that sales volume is positively correlated with lower cost of the product, with higher sales volumes observed when the cost is less than approximately 9 dollars. In contrast, sales volume tends to be lower when the cost is higher than 9 dollars. Additionally, the discount offered does not significantly impact sales volume, and lower product cost tends to lead to higher sales volume.
+
+Overall, the findings from the model align with Swire Coca-Cola's business requirements to improve their sales volume predictions for new customers. By providing an accurate prediction of the sales volume, the model enables Swire Coca-Cola to make data-driven decisions about discounts and pricing, ultimately leading to increased profit and success.
